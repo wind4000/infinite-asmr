@@ -41,6 +41,10 @@ export function useAudioPlayer() {
 
     if (queue.length === 1 && isPlaying.value && !isPaused.value) {
       scheduleNext()
+      // After resuming from an empty-queue wait, immediately pre-fetch next slice
+      if (queue.length === 0 && onNeedMoreCallback && !refreshingPromise) {
+        refreshingPromise = onNeedMoreCallback().finally(() => { refreshingPromise = null })
+      }
     }
   }
 
