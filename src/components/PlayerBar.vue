@@ -95,11 +95,13 @@ const statusLabel = computed(() => {
     generatingAudio: '正在生成音频...',
     playing: '正在播放',
     completed: '播放完成',
+    error: '播放出错',
   }
   return map[settings.currentStatus] || settings.currentStatus
 })
 
 const statusColor = computed(() => {
+  if (settings.currentStatus === 'error') return 'text-red-400'
   if (settings.isPlaying) return 'text-emerald-400'
   if (isBusy.value) return 'text-brand-400'
   return 'text-gray-400'
@@ -107,6 +109,7 @@ const statusColor = computed(() => {
 
 const statusDetail = computed(() => {
   if (settings.currentStatus === 'completed') return '已到达设定时长'
+  if (settings.currentStatus === 'error') return asmrLoop.error.value || '未知错误'
   const total = asmrLoop.totalSlices.value
   const playing = settings.playedSliceIndex + 1  // 1-indexed for display
   if (playing > 0 && total > 0) {
@@ -220,6 +223,15 @@ player.onNeedMore(async () => {
   const state = asmrLoop.getState()
   if (state.nextSynthIdx < state.totalSlices) {
     await asmrLoop.synthesizeAndEnqueue(state.nextSynthIdx)
+  }
+
+  // Stop on synth error
+  if (asmrLoop.error.value) {
+    player.stop()
+    asmrLoop.stop()
+    settings.isPlaying = false
+    settings.currentStatus = 'error'
+    stopElapsedTimer()
   }
 })
 

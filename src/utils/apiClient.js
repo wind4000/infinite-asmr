@@ -23,7 +23,7 @@ export function resolveUrl(externalUrl) {
   }
 
   // Production: route through Service Worker proxy (<base>/__proxy/<target-url>)
-  if (externalUrl.startsWith('https://dashscope') || externalUrl.startsWith('http://dashscope')) {
+  if (externalUrl.startsWith('https://') || externalUrl.startsWith('http://')) {
     return PROD_BASE + '__proxy/' + externalUrl
   }
   return externalUrl

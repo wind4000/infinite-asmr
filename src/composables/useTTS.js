@@ -79,7 +79,10 @@ export function useTTS() {
 
       const audioUrl = data.output?.audio_url || data.output?.audio?.url || data.url
       if (audioUrl) {
-        const audioResp = await fetch(audioUrl)
+        const audioResp = await fetch(resolveUrl(audioUrl))
+        if (!audioResp.ok) {
+          throw new Error(`音频下载失败 (${audioResp.status})`)
+        }
         return await audioResp.arrayBuffer()
       }
 
@@ -158,7 +161,10 @@ async function pollTtsTask(base, apiKey, taskId, maxAttempts = 60) {
     if (status === 'SUCCEEDED') {
       const audioUrl = data.output?.audio_url || data.output?.audio?.url
       if (audioUrl) {
-        const audioResp = await fetch(audioUrl)
+        const audioResp = await fetch(resolveUrl(audioUrl))
+        if (!audioResp.ok) {
+          throw new Error(`音频下载失败 (${audioResp.status})`)
+        }
         return await audioResp.arrayBuffer()
       }
       return null

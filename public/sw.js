@@ -23,12 +23,18 @@ self.addEventListener('fetch', (event) => {
 
   // Extract target URL from after /__proxy/
   const target = url.pathname.slice(markerIdx + PROXY_MARKER.length + 2) // skip "/__proxy/"
-  if (!target || !target.startsWith('https://dashscope') && !target.startsWith('http://dashscope')) {
+  // Accept any http/https URL (dashscope APIs + OSS audio files)
+  if (!target || (!target.startsWith('https://') && !target.startsWith('http://'))) {
     return
   }
 
-  // Reconstruct the original target URL with query string
-  const targetUrl = target + url.search
+  // Reconstruct the original target URL with query string.
+  // Upgrade http:// → https:// — the SW runs on an HTTPS origin and cannot
+  // fetch() to plain HTTP (browser security restriction).
+  let targetUrl = target + url.search
+  if (targetUrl.startsWith('http://')) {
+    targetUrl = 'https://' + targetUrl.slice(7)
+  }
 
   event.respondWith(
     (async () => {

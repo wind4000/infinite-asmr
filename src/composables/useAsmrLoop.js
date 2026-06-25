@@ -82,9 +82,15 @@ export function useAsmrLoop() {
         nextSynthIdx.value = idx + 1
         return { done: false, index: idx }
       }
+      // Audio synthesis returned null — likely an error
+      if (!audio) {
+        error.value = `切片 ${idx + 1} 音频合成失败`
+        setStatus('idle')
+      }
       return { done: true, index: idx }
     } catch (e) {
       console.error(`[ASMR Loop] Synth failed for slice ${idx}:`, e)
+      error.value = `切片 ${idx + 1} 音频合成失败: ${e.message}`
       return { done: true, index: idx }
     } finally {
       synthInFlight.delete(idx)
