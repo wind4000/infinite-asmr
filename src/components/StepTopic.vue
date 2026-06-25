@@ -22,20 +22,6 @@
         <p class="text-xs text-gray-600">LLM 将用选择的语种生成内容，TTS 合成时自动匹配</p>
       </div>
 
-      <!-- TTS Model selector -->
-      <div class="space-y-2">
-        <label class="text-xs text-gray-500">语音合成模型</label>
-        <select
-          v-model="selectedTtsModel"
-          class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 focus:border-brand-500 transition-colors"
-        >
-          <option v-for="m in ttsModels" :key="m.value" :value="m.value">
-            {{ m.label }}
-          </option>
-        </select>
-        <p class="text-xs text-gray-600">选择 CosyVoice 语音合成模型，影响音质和合成速度</p>
-      </div>
-
       <!-- Preset topics -->
       <div class="grid grid-cols-2 gap-3">
         <button
@@ -128,22 +114,12 @@ const topics = [
 const selectedTopic = ref(settings.topicName || '')
 const customTopicPrompt = ref(settings.topicPrompt || '')
 const selectedLang = ref(settings.topicLang || 'zh')
-const selectedTtsModel = ref(settings.ttsModel || 'cosyvoice-v3.5-plus')
 
 const langs = [
   { value: 'zh', label: '中文' },
   { value: 'en', label: 'English' },
   { value: 'ja', label: '日本語' },
   { value: 'ko', label: '한국어' },
-]
-
-const ttsModels = [
-  { value: 'cosyvoice-v3.5-plus', label: 'cosyvoice-v3.5-plus (推荐)' },
-  { value: 'cosyvoice-v3.5-flash', label: 'cosyvoice-v3.5-flash' },
-  { value: 'cosyvoice-v3-flash', label: 'cosyvoice-v3-flash' },
-  { value: 'cosyvoice-v3-plus', label: 'cosyvoice-v3-plus' },
-  { value: 'cosyvoice-v2', label: 'cosyvoice-v2' },
-  { value: 'cosyvoice-v1', label: 'cosyvoice-v1' },
 ]
 
 const currentTopicPrompt = computed(() => {
@@ -164,7 +140,6 @@ function save() {
   const topic = topics.find(t => t.name === selectedTopic.value)
   settings.topicName = selectedTopic.value
   settings.topicLang = selectedLang.value
-  settings.ttsModel = selectedTtsModel.value
   if (selectedTopic.value === '自定义') {
     if (!customTopicPrompt.value.trim()) return
     settings.topicPrompt = customTopicPrompt.value
@@ -177,7 +152,6 @@ function save() {
 
 // Auto-save when dropdowns change (already configured)
 watch(selectedLang, save)
-watch(selectedTtsModel, save)
 
 // Auto-save when custom textarea changes
 watch(customTopicPrompt, () => {

@@ -193,6 +193,7 @@ const LANG_NAMES = {
 // System prompt for single-chunk preview generation
 function buildSystemPrompt(characterPrompt, topicPrompt, lang = 'zh') {
   const langName = LANG_NAMES[lang] || 'Chinese'
+  const isJapanese = lang === 'ja'
 
   return `You are a professional ASMR voice content creator. Your task is to generate warm, soothing, relaxing ASMR audio scripts.
 
@@ -209,11 +210,20 @@ ${topicPrompt ? `## Topic\n${topicPrompt}\n` : ''}
 
 ## Language Requirement
 You MUST generate ALL content in ${langName}. Do not mix languages.
-
+${isJapanese ? `
+## Japanese Ruby (Furigana) Annotations
+Add ruby annotations using the format {word|reading} for EVERY kanji compound word.
+Example: {今日|きょう}は{浅草|あさくさ}で{和菓子|わがし}を{食|た}べました。
+Annotate by lexeme (meaningful word unit), NOT by individual character.
+→ CORRECT: {今日|きょう}
+→ WRONG: {今|いま}{日|ひ}
+Single-kanji words like {食|た} are also annotated.
+The system will convert {word|reading} to the reading for TTS pronunciation guidance.
+` : ''}
 ## CRITICAL RULES
 - Output ONLY plain text meant for direct Text-to-Speech reading
 - NEVER use stage directions, action descriptions, or annotations in any brackets:
-  DO NOT output: [pause], [停顿], (laugh), （笑）, *whisper*, <sigh>, 【轻声】
+  DO NOT output: [pause], [停顿], (laugh), （笑）, *whisper*, <sigh>, 【轻声】${isJapanese ? '\n- EXCEPTION: The {word|reading} ruby format is REQUIRED for all Japanese kanji words' : ''}
 - Control pacing and pauses through natural punctuation and line breaks only
 - Never output character names, scene descriptions, or any non-spoken text
 - Output the spoken text and nothing else`
@@ -242,6 +252,7 @@ function buildMessages(systemPrompt, previousEnding, lang = 'zh') {
 
 // System prompt for full script generation (markdown list format)
 function buildScriptSystemPrompt(characterPrompt, topicPrompt, langName, targetChars) {
+  const isJapanese = langName === 'Japanese'
   return `You are a professional ASMR voice content creator. Generate a complete, continuous ASMR audio script.
 
 ${characterPrompt ? `## Character\n${characterPrompt}\n` : ''}
@@ -254,7 +265,15 @@ ${topicPrompt ? `## Topic\n${topicPrompt}\n` : ''}
 4. Avoid sensitive, political, violent, or inappropriate content
 
 ## Language Requirement
-ALL content MUST be in ${langName}.
+ALL content MUST be in ${langName}.${isJapanese ? `
+
+## Japanese Ruby (Furigana) Annotations
+Add ruby annotations using the format {word|reading} for EVERY kanji compound word.
+Example: {今日|きょう}は{浅草|あさくさ}で{和菓子|わがし}を{食|た}べました。
+Annotate by lexeme (meaningful word unit), NOT by individual character.
+→ CORRECT: {今日|きょう}
+→ WRONG: {今|いま}{日|ひ}
+Single-kanji words like {食|た} are also annotated.` : ''}
 
 ## Output Format
 Output as a markdown unordered list. Each list item should be a natural paragraph suitable for direct Text-to-Speech reading.
@@ -263,7 +282,7 @@ The entire script should total approximately ${targetChars} characters.
 
 ## CRITICAL
 - Do NOT include stage directions, action descriptions, or annotations in brackets
-- Do NOT output [pause], (laugh), *whisper*, or any meta-instructions
+- Do NOT output [pause], (laugh), *whisper*, or any meta-instructions${isJapanese ? '\n- EXCEPTION: The {word|reading} ruby format is REQUIRED for all Japanese kanji words' : ''}
 - Output ONLY the markdown list of spoken text
 - Each list item is one speaking unit for TTS`
 }

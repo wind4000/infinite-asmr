@@ -16,7 +16,7 @@ export function useVoiceClone() {
   const error = ref('')
 
   // Clone voice from a public audio URL
-  async function cloneFromUrl({ url, apiKey, prefix, languageHints = ['zh'] }) {
+  async function cloneFromUrl({ url, apiKey, prefix, languageHints = ['zh'], targetModel }) {
     if (!url) {
       error.value = '请提供音频 URL'
       return null
@@ -38,7 +38,7 @@ export function useVoiceClone() {
         model: 'voice-enrollment',
         input: {
           action: 'create_voice',
-          target_model: API.COSYVOICE_CLONE_MODEL,
+          target_model: targetModel || API.COSYVOICE_CLONE_MODEL,
           prefix: voicePrefix,
           url,
           language_hints: languageHints,
@@ -96,6 +96,7 @@ export function useVoiceClone() {
     previewText,
     apiKey,
     prefix,
+    targetModel,
   }) {
     if (!voicePrompt || !previewText) {
       error.value = '请填写音色描述和试听文本'
@@ -118,7 +119,7 @@ export function useVoiceClone() {
         model: 'voice-enrollment',
         input: {
           action: 'create_voice',
-          target_model: API.COSYVOICE_CLONE_MODEL,
+          target_model: targetModel || API.COSYVOICE_CLONE_MODEL,
           prefix: voicePrefix,
           voice_prompt: voicePrompt,
           preview_text: previewText,

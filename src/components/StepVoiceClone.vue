@@ -36,6 +36,7 @@
               </svg>
             </span>
           </div>
+          <div class="text-xs text-gray-600 font-mono truncate" v-if="settings.voiceId">{{ settings.voiceId }}</div>
         </div>
       </div>
 
@@ -58,6 +59,20 @@
           >
             {{ mode.label }}
           </button>
+        </div>
+
+        <!-- TTS Model selector (moved from StepTopic) -->
+        <div class="space-y-2 mb-4">
+          <label class="text-xs text-gray-500">语音合成模型</label>
+          <select
+            v-model="selectedModel"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 focus:border-brand-500 transition-colors"
+          >
+            <option v-for="m in cloneModels" :key="m.value" :value="m.value">
+              {{ m.label }}
+            </option>
+          </select>
+          <p class="text-xs text-gray-600">选择 CosyVoice 合成模型，克隆将使用该模型创建音色。v1/v2 不支持克隆。</p>
         </div>
 
         <!-- Shared: prefix input -->
@@ -241,6 +256,29 @@ const modes = [
   { key: 'id', label: '填 voice_id' },
 ]
 
+// Known CosyVoice synthesis models (longest-first for prefix matching)
+const ALL_MODELS = [
+  'cosyvoice-v3.5-plus',
+  'cosyvoice-v3.5-flash',
+  'cosyvoice-v3-flash',
+  'cosyvoice-v3-plus',
+  'cosyvoice-v2',
+  'cosyvoice-v1',
+]
+
+// Models that support voice cloning (exclude v1/v2)
+const CLONEABLE = ALL_MODELS.filter(m => m !== 'cosyvoice-v2' && m !== 'cosyvoice-v1')
+
+const cloneModels = CLONEABLE.map(m => ({ value: m, label: m === 'cosyvoice-v3.5-plus' ? `${m} (推荐)` : m }))
+
+function detectModelFromVoiceId(voiceId) {
+  if (!voiceId) return 'cosyvoice-v3.5-plus'
+  for (const model of ALL_MODELS) {
+    if (voiceId.startsWith(model)) return model
+  }
+  return 'cosyvoice-v3.5-plus'
+}
+
 const selectedMode = ref('url')
 const audioUrl = ref('')
 const audioLang = ref('zh')
@@ -253,12 +291,21 @@ const cloneError = ref('')
 const cloneProgress = ref('')
 const showNewForm = ref(false)
 
+// Model selector: initialize from settings.ttsModel, fall back to cloneable if v1/v2
+const selectedModel = ref(
+  CLONEABLE.includes(settings.ttsModel) ? settings.ttsModel : 'cosyvoice-v3.5-plus'
+)
+
 const hasSavedVoices = computed(() => settings.savedVoices.length > 0)
 
 function selectExistingVoice(v) {
   settings.voiceId = v.voiceId
   settings.voiceName = v.voiceName
   cloneError.value = ''
+  // Auto-detect model from voice_id prefix
+  const detected = detectModelFromVoiceId(v.voiceId)
+  settings.ttsModel = detected
+  selectedModel.value = CLONEABLE.includes(detected) ? detected : 'cosyvoice-v3.5-plus'
   emit('configured', v.voiceId)
 }
 
@@ -266,6 +313,10 @@ function handleDirectId() {
   if (!directVoiceId.value) return
   const name = directVoiceName.value || directVoiceId.value.slice(0, 20)
   settings.addSavedVoice(directVoiceId.value, name)
+  // Auto-detect model from voice_id prefix
+  const detected = detectModelFromVoiceId(directVoiceId.value)
+  settings.ttsModel = detected
+  selectedModel.value = CLONEABLE.includes(detected) ? detected : 'cosyvoice-v3.5-plus'
   emit('configured', directVoiceId.value)
 }
 
@@ -278,12 +329,15 @@ async function handleCloneFromUrl() {
     apiKey: settings.bailianToken,
     languageHints: [audioLang.value],
     prefix: voicePrefix.value || undefined,
+    targetModel: selectedModel.value,
   })
   cloneProgress.value = progress.value
 
   if (resultId) {
     const name = voicePrefix.value || '克隆音色 ' + resultId.slice(0, 8)
     settings.addSavedVoice(resultId, name)
+    // After clone, the returned voice_id already has the model prefix
+    settings.ttsModel = selectedModel.value
     emit('configured', resultId)
   } else {
     cloneError.value = error.value
@@ -299,12 +353,14 @@ async function handleCreateDescription() {
     previewText: previewText.value,
     apiKey: settings.bailianToken,
     prefix: voicePrefix.value || undefined,
+    targetModel: selectedModel.value,
   })
   cloneProgress.value = progress.value
 
   if (resultId) {
     const name = voicePrefix.value || '描述音色 ' + resultId.slice(0, 8)
     settings.addSavedVoice(resultId, name)
+    settings.ttsModel = selectedModel.value
     emit('configured', resultId)
   } else {
     cloneError.value = error.value

@@ -109,6 +109,10 @@ function cleanTtsText(text) {
   if (!text) return text
 
   let cleaned = text
+    // Convert Japanese ruby {漢字|reading} → reading (before bracket stripping)
+    // Character class includes: hiragana, katakana, CJK ideographs, Extension A,
+    // and Japanese iteration marks (々 U+3005, 〆 U+3006, 〇 U+3007, ゝゞヽヾ)
+    .replace(/\{[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff\u3400-\u4dbf\u3005-\u3007\u309d-\u309e\u30fd-\u30fea-zA-Z0-9]+?\|([\u3040-\u309f\u30a0-\u30ff]+?)\}/g, '$1')
     // Remove Chinese square brackets: [xxx]
     .replace(/\[[^\]]*\]/g, '')
     // Remove full-width Chinese brackets: 【xxx】
