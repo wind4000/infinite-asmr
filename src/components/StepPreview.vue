@@ -13,6 +13,27 @@
         系统将根据你的人物设定和聊天主题，生成约 1 分钟的试听音频。
       </div>
 
+      <!-- Rate slider -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs text-gray-500">语速</label>
+          <span class="text-xs text-gray-400 font-mono tabular-nums">{{ settings.ttsRate.toFixed(1) }}x</span>
+        </div>
+        <input
+          type="range"
+          :value="settings.ttsRate"
+          @input="settings.ttsRate = parseFloat($event.target.value)"
+          min="0.5"
+          max="2.0"
+          step="0.1"
+          class="w-full h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-brand-500"
+        />
+        <div class="flex justify-between text-xs text-gray-600">
+          <span>0.5x (慢)</span>
+          <span>2.0x (快)</span>
+        </div>
+      </div>
+
       <!-- Settings summary -->
       <div class="grid grid-cols-2 gap-2 text-sm">
         <div class="bg-gray-800/30 rounded-lg p-3">
@@ -149,6 +170,7 @@ async function handleGenerate() {
       voiceId: settings.voiceId,
       model: settings.ttsModel,
       format: 'wav',
+      rate: settings.ttsRate,
       languageHints: settings.ttsLangHints,
     })
 

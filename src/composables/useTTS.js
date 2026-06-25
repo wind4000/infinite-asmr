@@ -18,6 +18,7 @@ export function useTTS() {
     format = 'wav',
     sampleRate = 24000,
     languageHints = ['zh'],
+    rate = 0.5,
   }) {
     if (!text) {
       error.value = '文本为空'
@@ -44,6 +45,9 @@ export function useTTS() {
           voice: voiceId,
           format,
           sample_rate: sampleRate,
+          rate,
+          instruction: buildInstruction(languageHints?.[0] || 'zh'),
+          enable_aigc_tag: true,
         },
         parameters: {},
       }
@@ -101,6 +105,18 @@ export function useTTS() {
   }
 
   return { synthesizing, error, synthesize }
+}
+
+// Build language-specific ASMR instruction for CosyVoice.
+// Controls speaking style: gentle, breathy whisper in the target language.
+function buildInstruction(lang) {
+  const map = {
+    zh: '用温柔、舒缓、耳语般的气声说话，像亲密的朋友在耳边轻轻低语，声音放轻放柔，带一点气息感，慢慢地说。',
+    en: 'Speak in a gentle, soothing, breathy whisper, like an intimate friend softly murmuring close to the ear. Use a light, airy, tender voice and speak slowly.',
+    ja: '優しく落ち着いた、ささやくような声で話してください。親しい友人が耳元でそっとつぶやくように。息のまじった、かるくてやさしい声で、ゆっくりと話してください。',
+    ko: '부드럽고 차분한 속삭임으로 말해주세요. 가까운 친구가 귓가에 조용히 속삭이듯이, 가볍고 숨결이 섞인 다정한 목소리로 천천히 말해주세요.',
+  }
+  return map[lang] || map.zh
 }
 
 // Clean text before sending to TTS — remove stage directions and non-speech markers.

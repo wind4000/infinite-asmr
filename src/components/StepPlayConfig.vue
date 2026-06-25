@@ -8,6 +8,28 @@
     subtitle-configured=""
   >
     <div class="space-y-4 animate-fade-in">
+      <!-- Rate slider -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-3">语速</label>
+        <div class="flex items-center gap-3 mb-2">
+          <input
+            type="range"
+            :value="settings.ttsRate"
+            @input="settings.ttsRate = parseFloat($event.target.value)"
+            min="0.5"
+            max="2.0"
+            step="0.1"
+            class="flex-1 h-1.5 bg-gray-700 rounded-full appearance-none cursor-pointer accent-brand-500"
+          />
+          <span class="text-sm text-gray-300 font-mono tabular-nums w-10 text-right">{{ settings.ttsRate.toFixed(1) }}x</span>
+        </div>
+        <div class="flex justify-between text-xs text-gray-600">
+          <span>0.5x (慢语速)</span>
+          <span>1.0x (正常)</span>
+          <span>2.0x (快)</span>
+        </div>
+      </div>
+
       <!-- Duration selector -->
       <div>
         <label class="block text-sm text-gray-400 mb-3">收听时长</label>

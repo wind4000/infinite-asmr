@@ -44,6 +44,9 @@ export const useSettingsStore = defineStore('settings', () => {
   // TTS model selection (used in preview + main playback)
   const ttsModel = ref(saved.ttsModel || 'cosyvoice-v3.5-plus')
 
+  // TTS speech rate (shared between preview and playback)
+  const ttsRate = ref(saved.ttsRate ?? 0.5)
+
   // Step 6: Preview - no persistent state needed
 
   // Step 7: Play Config
@@ -83,6 +86,7 @@ export const useSettingsStore = defineStore('settings', () => {
     characterName, characterPrompt, characterSet,
     topicName, topicPrompt, topicSet, topicLang,
     ttsModel,
+    ttsRate,
     playDuration,
   ]
 
@@ -105,6 +109,7 @@ export const useSettingsStore = defineStore('settings', () => {
       topicSet: topicSet.value,
       topicLang: topicLang.value,
       ttsModel: ttsModel.value,
+      ttsRate: ttsRate.value,
       playDuration: playDuration.value,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
@@ -146,6 +151,7 @@ export const useSettingsStore = defineStore('settings', () => {
     characterName, characterPrompt, characterSet,
     topicName, topicPrompt, topicSet, topicLang,
     ttsModel,
+    ttsRate,
     playDuration,
     isPlaying, currentStatus, currentText, timeElapsed, currentPreviewUrl,
     fullScript, scriptSlices, sliceAudios, playedSliceIndex,

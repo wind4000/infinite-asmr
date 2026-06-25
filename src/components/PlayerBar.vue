@@ -169,6 +169,7 @@ asmrLoop.registerHandlers({
       voiceId: settings.voiceId,
       model: settings.ttsModel,
       format: 'wav',
+      rate: settings.ttsRate,
       languageHints: settings.ttsLangHints,
     })
   },
