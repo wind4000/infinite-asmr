@@ -41,6 +41,7 @@ self.addEventListener('fetch', (event) => {
           method: event.request.method,
           headers,
           body: event.request.body,
+          duplex: 'half',
         })
 
         const corsHeaders = {
