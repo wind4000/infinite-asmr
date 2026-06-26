@@ -62,7 +62,7 @@
         </div>
 
         <!-- TTS Model selector (moved from StepTopic) -->
-        <div class="space-y-2 mb-4">
+        <div v-if="selectedMode !== 'id'" class="space-y-2 mb-4">
           <label class="text-xs text-gray-500">语音合成模型</label>
           <select
             v-model="selectedModel"
