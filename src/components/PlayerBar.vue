@@ -12,6 +12,8 @@
             :style="{ width: progressPercent + '%' }"
           ></div>
         </div>
+        <!-- Background generation hint -->
+        <div v-if="bgHint" class="text-xs text-brand-400/70 mt-1 animate-pulse">{{ bgHint }}</div>
       </div>
 
       <!-- Controls row -->
@@ -52,6 +54,22 @@
           <div class="text-xs text-gray-500">{{ statusDetail }}</div>
         </div>
 
+        <!-- Download button (when audio is available) -->
+        <button
+          v-if="canDownload"
+          @click="handleDownload"
+          :disabled="downloading"
+          class="w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors"
+          title="下载合并 MP3"
+        >
+          <svg v-if="downloading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="31.4 31.4" />
+          </svg>
+          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        </button>
+
         <!-- Time display -->
         <div v-if="settings.isPlaying" class="text-sm text-gray-400 font-mono tabular-nums">
           {{ formattedTime }}
@@ -68,6 +86,7 @@ import { useAudioPlayer } from '../composables/useAudioPlayer.js'
 import { useAsmrLoop } from '../composables/useAsmrLoop.js'
 import { useTextGen } from '../composables/useTextGen.js'
 import { useTTS } from '../composables/useTTS.js'
+import { concatWavsToMp3 } from '../utils/mp3Encoder.js'
 
 const settings = useSettingsStore()
 const player = useAudioPlayer()
@@ -78,7 +97,12 @@ const tts = useTTS()
 const elapsed = ref(0)
 let elapsedTimer = null
 
-// ----- Computed -----
+// Background generation state
+const generatingScript = ref(false)
+const generatingAudio = ref(false)
+const downloading = ref(false)
+
+// --- Computed ---
 
 const canPlay = computed(() => {
   return settings.topicSet && settings.bailianToken && settings.llmConfigured && settings.voiceId
@@ -111,11 +135,18 @@ const statusDetail = computed(() => {
   if (settings.currentStatus === 'completed') return '已到达设定时长'
   if (settings.currentStatus === 'error') return asmrLoop.error.value || '未知错误'
   const total = asmrLoop.totalSlices.value
-  const playing = settings.playedSliceIndex + 1  // 1-indexed for display
+  const playing = settings.playedSliceIndex + 1
   if (playing > 0 && total > 0) {
     return `切片 ${playing}/${total}`
   }
   return settings.topicName ? `主题: ${settings.topicName}` : '点击播放按钮开始 ASMR 体验'
+})
+
+// Background hint: shows while text or audio is being generated during playback
+const bgHint = computed(() => {
+  if (generatingScript.value) return '正在续写台本...'
+  if (generatingAudio.value) return '正在生成音频...'
+  return ''
 })
 
 const progressPercent = computed(() => {
@@ -130,61 +161,81 @@ const formattedTime = computed(() => {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 })
 
-// ----- Duration helper -----
+const canDownload = computed(() => {
+  return settings.savedAudioBuffers.length > 0 && !settings.isPlaying
+})
+
+// --- Duration helper ---
 
 function getDurationMinutes() {
   const map = { '5min': 5, '15min': 15, '30min': 30, 'infinite': 5 }
   return map[settings.playDuration] || 5
 }
 
-// ----- Register handlers (bridge asmrLoop ↔ textGen/tts/player) -----
+// --- Register handlers ---
 
 asmrLoop.registerHandlers({
   onGenScript: async () => {
-    return await textGen.generateScript({
-      llmUrl: settings.llmUrl,
-      llmToken: settings.llmToken,
-      llmModel: settings.llmModel,
-      characterPrompt: settings.characterPrompt,
-      topicPrompt: settings.topicPrompt,
-      durationMinutes: getDurationMinutes(),
-      lang: settings.topicLang,
-    })
+    generatingScript.value = true
+    try {
+      return await textGen.generateScript({
+        llmUrl: settings.llmUrl,
+        llmToken: settings.llmToken,
+        llmModel: settings.llmModel,
+        characterPrompt: settings.characterPrompt,
+        topicPrompt: settings.topicPrompt,
+        durationMinutes: getDurationMinutes(),
+        lang: settings.topicLang,
+      })
+    } finally {
+      generatingScript.value = false
+    }
   },
 
   onContinueScript: async (existingScript) => {
-    const cont = await textGen.continueScript({
-      llmUrl: settings.llmUrl, llmToken: settings.llmToken, llmModel: settings.llmModel,
-      characterPrompt: settings.characterPrompt, topicPrompt: settings.topicPrompt,
-      existingScript, durationMinutes: 5, lang: settings.topicLang,
-    })
-    if (cont) settings.fullScript = existingScript + '\n' + cont
-    return cont
+    generatingScript.value = true
+    try {
+      const cont = await textGen.continueScript({
+        llmUrl: settings.llmUrl, llmToken: settings.llmToken, llmModel: settings.llmModel,
+        characterPrompt: settings.characterPrompt, topicPrompt: settings.topicPrompt,
+        existingScript, durationMinutes: 5, lang: settings.topicLang,
+      })
+      if (cont) settings.fullScript = existingScript + '\n' + cont
+      return cont
+    } finally {
+      generatingScript.value = false
+    }
   },
 
   onSynthSlice: async (text, idx) => {
-    return await tts.synthesize({
-      text,
-      apiKey: settings.bailianToken,
-      voiceId: settings.voiceId,
-      model: settings.ttsModel,
-      format: 'wav',
-      rate: settings.ttsRate,
-      languageHints: settings.ttsLangHints,
-    })
+    generatingAudio.value = true
+    try {
+      return await tts.synthesize({
+        text,
+        apiKey: settings.bailianToken,
+        voiceId: settings.voiceId,
+        model: settings.ttsModel,
+        format: 'wav',
+        rate: settings.ttsRate,
+        languageHints: settings.ttsLangHints,
+      })
+    } finally {
+      generatingAudio.value = false
+    }
   },
 
   onEnqueueSlice: async (audioData, idx) => {
     if (!audioData) return
 
+    // Save raw WAV for download
+    settings.savedAudioBuffers.push(audioData.slice(0))
+
     const wavBlob = new Blob([audioData], { type: 'audio/wav' })
     const arrayBuffer = await wavBlob.arrayBuffer()
     const ctx = new (window.AudioContext || window.webkitAudioContext)()
     const buffer = await ctx.decodeAudioData(arrayBuffer)
-    // Pack slice metadata so the player can surface it when playback starts
     const state = asmrLoop.getState()
     const rawText = state.slices[idx]?.text || ''
-    // Strip ruby: {word|reading} → word for display (TTS gets the reading)
     const meta = { text: rawText ? rawText.replace(/\{([^|]+)\|[^}]+\}/g, '$1') : '', index: idx }
     await player.enqueueBuffer(buffer, 24000, meta)
     ctx.close()
@@ -195,9 +246,8 @@ asmrLoop.registerHandlers({
   },
 })
 
-// ----- Player callbacks -----
+// --- Player callbacks ---
 
-// Fires when a slice actually starts playing (sync display with audio)
 player.onSliceStart((meta) => {
   if (meta) {
     settings.playedSliceIndex = meta.index
@@ -205,11 +255,9 @@ player.onSliceStart((meta) => {
   }
 })
 
-// Called when player queue is empty and needs more audio
 player.onNeedMore(async () => {
   if (!settings.isPlaying) return
 
-  // Stop if fixed duration reached
   if (isDurationReached()) {
     player.stop()
     asmrLoop.stop()
@@ -219,16 +267,13 @@ player.onNeedMore(async () => {
     return
   }
 
-  // Infinite mode: check if we need continuation
   await asmrLoop.checkContinue()
 
-  // Synthesize the next pending slice and enqueue it
   const state = asmrLoop.getState()
   if (state.nextSynthIdx < state.totalSlices) {
     await asmrLoop.synthesizeAndEnqueue(state.nextSynthIdx)
   }
 
-  // Stop on synth error
   if (asmrLoop.error.value) {
     player.stop()
     asmrLoop.stop()
@@ -244,7 +289,7 @@ player.onPlaybackEnd(() => {
   stopElapsedTimer()
 })
 
-// ----- Duration tracking -----
+// --- Duration tracking ---
 
 function isDurationReached() {
   const limits = { '5min': 300, '15min': 900, '30min': 1800 }
@@ -270,13 +315,12 @@ function stopElapsedTimer() {
   if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null }
 }
 
-// ----- Controls -----
+// --- Controls ---
 
 async function handleToggle() {
   if (!canPlay.value) return
 
   if (!settings.isPlaying) {
-    // START
     settings.resetScriptState()
     settings.isPlaying = true
     elapsed.value = 0
@@ -284,7 +328,6 @@ async function handleToggle() {
     asmrLoop.configure({ duration: settings.playDuration })
     await asmrLoop.start()
 
-    // Abort if script generation failed (e.g. LLM 500)
     if (asmrLoop.error.value) {
       settings.isPlaying = false
       settings.currentStatus = 'idle'
@@ -293,9 +336,7 @@ async function handleToggle() {
 
     player.play()
     startElapsedTimer()
-
   } else {
-    // PAUSE
     player.pause()
     asmrLoop.pause()
     settings.isPlaying = false
@@ -312,7 +353,33 @@ function handleStop() {
   settings.currentText = ''
   elapsed.value = 0
   stopElapsedTimer()
-  settings.resetScriptState()
+  // Keep savedAudioBuffers for download after stop
+}
+
+// --- Download ---
+
+async function handleDownload() {
+  if (settings.savedAudioBuffers.length === 0) return
+  downloading.value = true
+  try {
+    const mp3Blob = await concatWavsToMp3(settings.savedAudioBuffers)
+    if (!mp3Blob) return
+
+    const url = URL.createObjectURL(mp3Blob)
+    const a = document.createElement('a')
+    a.href = url
+    const topic = settings.topicName || 'asmr'
+    const now = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    a.download = `infinite-asmr-${topic}-${now}.mp3`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error('Download failed:', e)
+  } finally {
+    downloading.value = false
+  }
 }
 
 onUnmounted(() => {

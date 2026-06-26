@@ -65,6 +65,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const sliceAudios = ref([])       // synthesized audio per slice: [{index, audioBuffer}, ...]
   const playedSliceIndex = ref(-1)  // index of currently playing slice
 
+  // Audio archive for download (runtime only)
+  const savedAudioBuffers = ref([])  // raw WAV ArrayBuffers in order
+
   const totalSlices = computed(() => scriptSlices.value.length)
   const completedSlices = computed(() => sliceAudios.value.length)
 
@@ -142,6 +145,7 @@ export const useSettingsStore = defineStore('settings', () => {
     scriptSlices.value = []
     sliceAudios.value = []
     playedSliceIndex.value = -1
+    savedAudioBuffers.value = []
   }
 
   return {
@@ -154,7 +158,7 @@ export const useSettingsStore = defineStore('settings', () => {
     ttsRate,
     playDuration,
     isPlaying, currentStatus, currentText, timeElapsed, currentPreviewUrl,
-    fullScript, scriptSlices, sliceAudios, playedSliceIndex,
+    fullScript, scriptSlices, sliceAudios, playedSliceIndex, savedAudioBuffers,
     totalSlices, completedSlices,
     llmConfigured, ttsLangHints,
     addSavedVoice, removeSavedVoice,
