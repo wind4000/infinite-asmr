@@ -183,7 +183,9 @@ asmrLoop.registerHandlers({
     const buffer = await ctx.decodeAudioData(arrayBuffer)
     // Pack slice metadata so the player can surface it when playback starts
     const state = asmrLoop.getState()
-    const meta = state.slices[idx] ? { text: state.slices[idx].text, index: idx } : { text: '', index: idx }
+    const rawText = state.slices[idx]?.text || ''
+    // Strip ruby: {word|reading} → word for display (TTS gets the reading)
+    const meta = { text: rawText ? rawText.replace(/\{([^|]+)\|[^}]+\}/g, '$1') : '', index: idx }
     await player.enqueueBuffer(buffer, 24000, meta)
     ctx.close()
   },
