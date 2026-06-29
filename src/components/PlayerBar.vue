@@ -60,7 +60,7 @@
           @click="handleDownload"
           :disabled="downloading"
           class="w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center transition-colors"
-          title="下载合并 MP3"
+          title="下载合并音频"
         >
           <svg v-if="downloading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="31.4 31.4" />
@@ -86,7 +86,7 @@ import { useAudioPlayer } from '../composables/useAudioPlayer.js'
 import { useAsmrLoop } from '../composables/useAsmrLoop.js'
 import { useTextGen } from '../composables/useTextGen.js'
 import { useTTS } from '../composables/useTTS.js'
-import { concatWavsToMp3 } from '../utils/mp3Encoder.js'
+import { concatWavsToWav } from '../utils/mp3Encoder.js'
 
 const settings = useSettingsStore()
 const player = useAudioPlayer()
@@ -362,15 +362,15 @@ async function handleDownload() {
   if (settings.savedAudioBuffers.length === 0) return
   downloading.value = true
   try {
-    const mp3Blob = await concatWavsToMp3(settings.savedAudioBuffers)
-    if (!mp3Blob) return
+    const wavBlob = await concatWavsToWav(settings.savedAudioBuffers)
+    if (!wavBlob) return
 
-    const url = URL.createObjectURL(mp3Blob)
+    const url = URL.createObjectURL(wavBlob)
     const a = document.createElement('a')
     a.href = url
     const topic = settings.topicName || 'asmr'
     const now = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    a.download = `infinite-asmr-${topic}-${now}.mp3`
+    a.download = `infinite-asmr-${topic}-${now}.wav`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
