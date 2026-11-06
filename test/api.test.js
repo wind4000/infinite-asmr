@@ -3,6 +3,7 @@ import test from 'node:test'
 import { useBailianToken } from '../src/composables/useBailianToken.js'
 import { useLLMToken } from '../src/composables/useLLMToken.js'
 import { useTTS } from '../src/composables/useTTS.js'
+import { useTextGen } from '../src/composables/useTextGen.js'
 import { useVoiceClone } from '../src/composables/useVoiceClone.js'
 
 const workspace = 'https://ws-example.cn-beijing.maas.aliyuncs.com'
@@ -53,4 +54,35 @@ test('voice cloning and synthesis use the configured workspace', async (t) => {
 
   assertWorkspaceUrl(requests[0][0], '/api/v1/services/audio/tts/customization')
   assertWorkspaceUrl(requests[1][0], '/api/v1/services/audio/tts/SpeechSynthesizer')
+})
+
+test('DeepSeek generation disables thinking so tokens produce spoken content', async (t) => {
+  let request
+  t.mock.method(globalThis, 'fetch', async (...args) => {
+    request = args
+    return jsonResponse({ choices: [{ message: { content: '本文です。' }, finish_reason: 'stop' }] })
+  })
+
+  const content = await useTextGen().generateText({
+    llmUrl: 'https://api.deepseek.com/v1',
+    llmToken: 'secret',
+    llmModel: 'deepseek-flash',
+  })
+  assert.equal(content, '本文です。')
+  assert.deepEqual(JSON.parse(request[1].body).thinking, { type: 'disabled' })
+})
+
+test('empty LLM content is an error even when HTTP succeeds', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => jsonResponse({
+    choices: [{ message: { content: '', reasoning_content: 'thinking' }, finish_reason: 'length' }],
+  }))
+
+  const textGen = useTextGen()
+  const content = await textGen.generateText({
+    llmUrl: 'https://api.deepseek.com/v1',
+    llmToken: 'secret',
+    llmModel: 'deepseek-flash',
+  })
+  assert.equal(content, null)
+  assert.match(textGen.error.value, /正文为空/)
 })

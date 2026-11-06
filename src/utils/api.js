@@ -29,6 +29,13 @@ export function getDashScopeBase(token) {
   return API.BAILIAN_DOMESTIC
 }
 
+// DeepSeek enables reasoning by default; spoken scripts should spend tokens on content.
+export function getChatRequestExtras(baseUrl) {
+  return new URL(baseUrl).hostname === 'api.deepseek.com'
+    ? { thinking: { type: 'disabled' } }
+    : {}
+}
+
 // Get the CosyVoice base URL
 export function getCosyVoiceBase(token) {
   return API.COSYVOICE_DOMESTIC

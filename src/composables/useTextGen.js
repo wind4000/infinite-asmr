@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { getChatRequestExtras } from '../utils/api.js'
 import { resolveUrl } from '../utils/apiClient.js'
 
 // Use the LLM to generate ASMR text content
@@ -36,6 +37,7 @@ export function useTextGen() {
           temperature: 0.85,
           top_p: 0.95,
           stream: false,
+          ...getChatRequestExtras(llmUrl),
         }),
       })
 
@@ -45,7 +47,7 @@ export function useTextGen() {
       }
 
       const data = await resp.json()
-      const content = data.choices?.[0]?.message?.content || ''
+      const content = readChatContent(data)
 
       const sentences = content.match(/[^。！？.!?\n]+[。！？.!?]?/g) || []
       if (sentences.length >= 3) {
@@ -95,6 +97,7 @@ export function useTextGen() {
           temperature: 0.9,
           top_p: 0.95,
           stream: false,
+          ...getChatRequestExtras(llmUrl),
         }),
       })
 
@@ -104,7 +107,7 @@ export function useTextGen() {
       }
 
       const data = await resp.json()
-      return data.choices?.[0]?.message?.content || null
+      return readChatContent(data)
 
     } catch (e) {
       error.value = e.message
@@ -159,6 +162,7 @@ export function useTextGen() {
           temperature: 0.9,
           top_p: 0.95,
           stream: false,
+          ...getChatRequestExtras(llmUrl),
         }),
       })
 
@@ -168,7 +172,7 @@ export function useTextGen() {
       }
 
       const data = await resp.json()
-      return data.choices?.[0]?.message?.content || null
+      return readChatContent(data)
 
     } catch (e) {
       error.value = e.message
@@ -179,6 +183,18 @@ export function useTextGen() {
   }
 
   return { generating, error, lastContext, generateText, generateScript, continueScript }
+}
+
+// ---------- Response parsing ----------
+
+function readChatContent(data) {
+  const choice = data.choices?.[0]
+  const content = choice?.message?.content
+  if (!content?.trim()) {
+    const reason = choice?.finish_reason === 'length' ? '，输出 token 已耗尽' : ''
+    throw new Error(`LLM 正文为空${reason}`)
+  }
+  return content
 }
 
 // ---------- Prompt builders ----------
