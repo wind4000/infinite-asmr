@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { getChatRequestExtras } from '../utils/api.js'
 import { resolveUrl } from '../utils/apiClient.js'
 
 export function useLLMToken() {
@@ -35,13 +36,20 @@ export function useLLMToken() {
         body: JSON.stringify({
           model,
           messages: [{ role: 'user', content: 'hi' }],
-          max_tokens: 1,
+          max_tokens: 16,
+          ...getChatRequestExtras(url),
         }),
       })
 
       if (resp.ok) {
-        verified.value = true
-        return true
+        const data = await resp.json()
+        if (data.choices?.[0]?.message?.content?.trim()) {
+          verified.value = true
+          return true
+        }
+        error.value = '验证失败: 模型返回空正文'
+        verified.value = false
+        return false
       }
 
       const body = await resp.text()
