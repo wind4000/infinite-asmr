@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { API, getDashScopeBase } from '../utils/api.js'
+import { API } from '../utils/api.js'
 import { resolveUrl } from '../utils/apiClient.js'
 
 export function useBailianToken() {
@@ -9,10 +9,14 @@ export function useBailianToken() {
   const error = ref('')
   const models = ref([])
 
-  async function verify(newToken) {
+  async function verify(newToken, baseUrl = API.COSYVOICE_DOMESTIC) {
     token.value = newToken
     if (!newToken) {
       error.value = '请输入 API-Key'
+      return false
+    }
+    if (!baseUrl) {
+      error.value = '请输入百炼 Base URL'
       return false
     }
 
@@ -20,12 +24,17 @@ export function useBailianToken() {
     error.value = ''
 
     try {
-      const base = getDashScopeBase(newToken)
-      const resp = await fetch(resolveUrl(`${base}/models`), {
+      const base = baseUrl.replace(/\/+$/, '')
+      const resp = await fetch(resolveUrl(`${base}/api/v1/services/audio/tts/customization`), {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${newToken}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          model: 'voice-enrollment',
+          input: { action: 'list_voice', page_size: 1, page_index: 0 },
+        }),
       })
 
       if (!resp.ok) {
@@ -35,8 +44,7 @@ export function useBailianToken() {
         return false
       }
 
-      const data = await resp.json()
-      models.value = data.data || []
+      await resp.json()
       verified.value = true
       error.value = ''
       return true

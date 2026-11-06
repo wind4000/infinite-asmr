@@ -61,7 +61,7 @@
       <!-- Verify button -->
       <button
         @click="handleVerify"
-        :disabled="verifying || !effectiveUrl || !tokenInput"
+        :disabled="verifying || !effectiveUrl || !tokenInput || !modelInput"
         class="btn-primary w-full flex items-center justify-center gap-2"
       >
         <svg v-if="verifying" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -114,7 +114,7 @@ const effectiveUrl = computed(() => {
 })
 
 async function handleVerify() {
-  const ok = await verify({ url: effectiveUrl.value, token: tokenInput.value })
+  const ok = await verify({ url: effectiveUrl.value, token: tokenInput.value, model: modelInput.value })
   if (ok) {
     settings.llmUrl = effectiveUrl.value
     settings.llmToken = tokenInput.value

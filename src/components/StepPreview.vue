@@ -167,6 +167,7 @@ async function handleGenerate() {
     const audioData = await synthesize({
       text,
       apiKey: settings.bailianToken,
+      baseUrl: settings.bailianBaseUrl,
       voiceId: settings.voiceId,
       model: settings.ttsModel,
       format: 'wav',

@@ -19,6 +19,7 @@ export function useTTS() {
     sampleRate = 24000,
     languageHints = ['zh'],
     rate = 0.5,
+    baseUrl,
   }) {
     if (!text) {
       error.value = '文本为空'
@@ -36,7 +37,7 @@ export function useTTS() {
     const cleanText = cleanTtsText(text)
 
     try {
-      const base = 'https://dashscope.aliyuncs.com'
+      const base = (baseUrl || API.COSYVOICE_DOMESTIC).replace(/\/+$/, '')
 
       const body = {
         model,

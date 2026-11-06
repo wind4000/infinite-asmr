@@ -27,6 +27,20 @@
         </p>
       </div>
 
+      <!-- Base URL -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-2">Base URL</label>
+        <input
+          v-model="baseInput"
+          type="url"
+          placeholder="https://dashscope.aliyuncs.com"
+          class="input-field"
+        />
+        <p class="mt-2 text-xs text-gray-500">
+          新版 sk-ws- Key 请填写 https://&lt;WorkspaceID&gt;.cn-beijing.maas.aliyuncs.com
+        </p>
+      </div>
+
       <!-- Token input -->
       <div>
         <label class="block text-sm text-gray-400 mb-2">API-Key</label>
@@ -40,7 +54,7 @@
           />
           <button
             @click="handleVerify"
-            :disabled="verifying || !tokenInput"
+            :disabled="verifying || !tokenInput || !baseInput"
             class="btn-primary flex items-center gap-2 whitespace-nowrap"
           >
             <svg v-if="verifying" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -87,11 +101,13 @@ const settings = useSettingsStore()
 const { verifying, verified, error, verify } = useBailianToken()
 
 const tokenInput = ref(settings.bailianToken || '')
+const baseInput = ref(settings.bailianBaseUrl || 'https://dashscope.aliyuncs.com')
 
 async function handleVerify() {
-  const ok = await verify(tokenInput.value)
+  const ok = await verify(tokenInput.value, baseInput.value)
   if (ok) {
     settings.bailianToken = tokenInput.value
+    settings.bailianBaseUrl = baseInput.value.replace(/\/+$/, '')
     settings.bailianVerified = true
     emit('configured')
   }

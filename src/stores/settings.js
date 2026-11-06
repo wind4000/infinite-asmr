@@ -17,6 +17,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // Step 1: Bailian Token
   const bailianToken = ref(saved.bailianToken || '')
+  const bailianBaseUrl = ref(saved.bailianBaseUrl || 'https://dashscope.aliyuncs.com')
   const bailianVerified = ref(saved.bailianVerified || false)
 
   // Step 2: Voice management
@@ -83,7 +84,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // Persist to localStorage
   const persistable = [
-    bailianToken, bailianVerified,
+    bailianToken, bailianBaseUrl, bailianVerified,
     savedVoices, voiceId, voiceName,
     llmUrl, llmToken, llmModel, llmVerified,
     characterName, characterPrompt, characterSet,
@@ -96,6 +97,7 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(persistable, () => {
     const data = {
       bailianToken: bailianToken.value,
+      bailianBaseUrl: bailianBaseUrl.value,
       bailianVerified: bailianVerified.value,
       savedVoices: savedVoices.value,
       voiceId: voiceId.value,
@@ -149,7 +151,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   return {
-    bailianToken, bailianVerified,
+    bailianToken, bailianBaseUrl, bailianVerified,
     savedVoices, voiceId, voiceName,
     llmUrl, llmToken, llmModel, llmVerified,
     characterName, characterPrompt, characterSet,

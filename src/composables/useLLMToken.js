@@ -7,7 +7,7 @@ export function useLLMToken() {
   const error = ref('')
   const models = ref([])
 
-  async function verify({ url, token }) {
+  async function verify({ url, token, model }) {
     if (!url) {
       error.value = '请输入 API URL'
       return false
@@ -16,49 +16,36 @@ export function useLLMToken() {
       error.value = '请输入 API Token'
       return false
     }
+    if (!model) {
+      error.value = '请输入模型名称'
+      return false
+    }
 
     verifying.value = true
     error.value = ''
 
     try {
       const baseUrl = url.replace(/\/+$/, '')
-
-      // Try to list models as verification
-      const resp = await fetch(resolveUrl(`${baseUrl}/models`), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (resp.ok) {
-        const data = await resp.json()
-        models.value = data.data || []
-        verified.value = true
-        return true
-      }
-
-      // Fallback: try a minimal chat completion
-      const fallbackResp = await fetch(resolveUrl(`${baseUrl}/chat/completions`), {
+      const resp = await fetch(resolveUrl(`${baseUrl}/chat/completions`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'qwen-plus',
+          model,
           messages: [{ role: 'user', content: 'hi' }],
           max_tokens: 1,
         }),
       })
 
-      if (fallbackResp.ok) {
+      if (resp.ok) {
         verified.value = true
         return true
       }
 
-      const body = await fallbackResp.text()
-      error.value = `验证失败 (${fallbackResp.status}): ${body.slice(0, 200)}`
+      const body = await resp.text()
+      error.value = `验证失败 (${resp.status}): ${body.slice(0, 200)}`
       verified.value = false
       return false
     } catch (e) {

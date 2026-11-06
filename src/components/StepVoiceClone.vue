@@ -327,6 +327,7 @@ async function handleCloneFromUrl() {
   const resultId = await cloneFromUrl({
     url: audioUrl.value,
     apiKey: settings.bailianToken,
+    baseUrl: settings.bailianBaseUrl,
     languageHints: [audioLang.value],
     prefix: voicePrefix.value || undefined,
     targetModel: selectedModel.value,
@@ -352,6 +353,7 @@ async function handleCreateDescription() {
     voicePrompt: voicePrompt.value,
     previewText: previewText.value,
     apiKey: settings.bailianToken,
+    baseUrl: settings.bailianBaseUrl,
     prefix: voicePrefix.value || undefined,
     targetModel: selectedModel.value,
   })
