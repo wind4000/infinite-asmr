@@ -16,7 +16,7 @@ export function useVoiceClone() {
   const error = ref('')
 
   // Clone voice from a public audio URL
-  async function cloneFromUrl({ url, apiKey, prefix, languageHints = ['zh'], targetModel }) {
+  async function cloneFromUrl({ url, apiKey, prefix, languageHints = ['zh'], targetModel, baseUrl }) {
     if (!url) {
       error.value = '请提供音频 URL'
       return null
@@ -31,7 +31,7 @@ export function useVoiceClone() {
     progress.value = '正在提交音色克隆...'
 
     try {
-      const base = API.COSYVOICE_DOMESTIC
+      const base = (baseUrl || API.COSYVOICE_DOMESTIC).replace(/\/+$/, '')
       const voicePrefix = (prefix || `asmr${Date.now().toString(36).slice(-6)}`).slice(0, 10)
 
       const body = {
@@ -97,6 +97,7 @@ export function useVoiceClone() {
     apiKey,
     prefix,
     targetModel,
+    baseUrl,
   }) {
     if (!voicePrompt || !previewText) {
       error.value = '请填写音色描述和试听文本'
@@ -112,7 +113,7 @@ export function useVoiceClone() {
     progress.value = '正在创建音色...'
 
     try {
-      const base = API.COSYVOICE_DOMESTIC
+      const base = (baseUrl || API.COSYVOICE_DOMESTIC).replace(/\/+$/, '')
       const voicePrefix = (prefix || `asmr${Date.now().toString(36).slice(-6)}`).slice(0, 10)
 
       const body = {

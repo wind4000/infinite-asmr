@@ -213,6 +213,7 @@ asmrLoop.registerHandlers({
       return await tts.synthesize({
         text,
         apiKey: settings.bailianToken,
+        baseUrl: settings.bailianBaseUrl,
         voiceId: settings.voiceId,
         model: settings.ttsModel,
         format: 'wav',

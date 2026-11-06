@@ -4,12 +4,12 @@ const DEV_PROXY_DASHSCOPE = '/proxy/dashscope'
 const DEV_PROXY_DASHSCOPE_INTL = '/proxy/dashscope-intl'
 
 function isDev() {
-  return import.meta.env.DEV
+  return import.meta.env?.DEV || false
 }
 
 // In production, the Service Worker at <base>/sw.js intercepts <base>/__proxy/* requests
 // and forwards them server-side to the original target, bypassing CORS.
-const PROD_BASE = import.meta.env.BASE_URL
+const PROD_BASE = import.meta.env?.BASE_URL || '/'
 
 export function resolveUrl(externalUrl) {
   if (isDev()) {
